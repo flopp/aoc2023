@@ -8,8 +8,9 @@ import (
 
 type digit_at_fn func(string, int) int
 
-// error => -1
+// get the calibration value, error => -1
 func getCalibrationValue(line string, digit_at digit_at_fn) int {
+	// search first digit from the front
 	first := -1
 	for i := 0; i < len(line); i++ {
 		first = digit_at(line, i)
@@ -21,6 +22,7 @@ func getCalibrationValue(line string, digit_at digit_at_fn) int {
 		return -1
 	}
 
+	// search last digit from the back
 	for i := len(line) - 1; i >= 0; i-- {
 		last := digit_at(line, i)
 		if last >= 0 {
@@ -31,6 +33,8 @@ func getCalibrationValue(line string, digit_at digit_at_fn) int {
 	return -1
 }
 
+// check if s[i] is a digit;
+// return 0-9 if digit is found, otherwise -1
 func DigitAt(s string, pos int) int {
 	c := s[pos]
 	if '0' <= c && c <= '9' {
@@ -39,6 +43,7 @@ func DigitAt(s string, pos int) int {
 	return -1
 }
 
+// check if sub can be found in main at pos
 func IsSubstringAt(sub, main string, pos int) bool {
 	sublen := len(sub)
 	mainlen := len(main)
@@ -53,18 +58,21 @@ func IsSubstringAt(sub, main string, pos int) bool {
 	return true
 }
 
-var digits = [...]string{"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"}
+var one_to_nine = [...]string{"one", "two", "three", "four", "five", "six", "seven", "eight", "nine"}
 
-// error => -1
-func DigitNameAt(s string, pos int) int {
+// check if s[i] is a digit, or a "digit name" starts at s[i]
+// return 0-9 if a digt is found, -1 otherwise
+func DigitOrNameAt(s string, pos int) int {
+	// look for digits first
 	c := DigitAt(s, pos)
 	if c >= 0 {
 		return c
 	}
 
-	for j, d := range digits {
-		if j != 0 && IsSubstringAt(d, s, pos) {
-			return j
+	// check all "digit names"
+	for i, name := range one_to_nine {
+		if IsSubstringAt(name, s, pos) {
+			return i + 1
 		}
 	}
 
@@ -78,7 +86,7 @@ func main() {
 		if helpers.Part1() {
 			c = getCalibrationValue(line, DigitAt)
 		} else {
-			c = getCalibrationValue(line, DigitNameAt)
+			c = getCalibrationValue(line, DigitOrNameAt)
 		}
 		if c < 0 {
 			panic(fmt.Errorf("bad line: %s", line))
