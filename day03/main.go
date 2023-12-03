@@ -6,32 +6,17 @@ import (
 	"github.com/flopp/aoc2023/helpers"
 )
 
-func getSymbol(lines []string, w, h, x, y int) byte {
-	if x >= 0 && x < w && y >= 0 && y < h {
-		return lines[y][x]
-	}
-	return '.'
-}
 func isSymbol(c byte) bool {
 	return c != '.' && (c < '0' || c > '9')
 }
 func hasSymbol(lines []string, w, h, minx, maxx, y int) bool {
-	// top + bottom
-	for x := minx - 1; x <= maxx+1; x += 1 {
-		if isSymbol(getSymbol(lines, w, h, x, y-1)) {
-			return true
+	for yy := helpers.Max(y-1, 0); yy <= helpers.Min(y+1, h-1); yy += 1 {
+		line := lines[yy]
+		for xx := helpers.Max(minx-1, 0); xx <= helpers.Min(maxx+1, w-1); xx += 1 {
+			if isSymbol(line[xx]) {
+				return true
+			}
 		}
-		if isSymbol(getSymbol(lines, w, h, x, y+1)) {
-			return true
-		}
-	}
-	// left
-	if isSymbol(getSymbol(lines, w, h, minx-1, y)) {
-		return true
-	}
-	// right
-	if isSymbol(getSymbol(lines, w, h, maxx+1, y)) {
-		return true
 	}
 
 	return false
@@ -54,6 +39,7 @@ func getNum(lines []string, w, h, x, y, dx, dy int) int {
 		return -1
 	}
 
+	// find start and end of number
 	minx := x + dx
 	for isDigit(line, minx-1) {
 		minx -= 1
@@ -62,25 +48,16 @@ func getNum(lines []string, w, h, x, y, dx, dy int) int {
 	for isDigit(line, maxx+1) {
 		maxx += 1
 	}
-	s := line[minx : 1+maxx]
-	return helpers.MustParseInt(s)
+	return helpers.MustParseInt(line[minx : 1+maxx])
 }
 
 func main() {
-	w := -1
 	lines := make([]string, 0)
 	helpers.ReadStdin(func(line string) {
-		if w == -1 {
-			w = len(line)
-		} else if w != len(line) {
-			panic(fmt.Errorf("bad line: len=%d w=%d", len(line), w))
-		}
 		lines = append(lines, line)
 	})
 	h := len(lines)
-	if h == 0 {
-		panic("no lines")
-	}
+	w := len(lines[0])
 
 	sum := 0
 	if helpers.Part1() {
@@ -88,13 +65,12 @@ func main() {
 			minx := -1
 			num := 0
 			for x := 0; x < w; x += 1 {
-				c := line[x]
-				if '0' <= c && c <= '9' {
+				if isDigit(line, x) {
 					if minx == -1 {
 						minx = x
 						num = 0
 					}
-					num = 10*num + int(c-'0')
+					num = 10*num + int(line[x]-'0')
 				} else if minx != -1 {
 					if hasSymbol(lines, w, h, minx, x-1, y) {
 						sum += num
