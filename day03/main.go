@@ -6,14 +6,21 @@ import (
 	"github.com/flopp/aoc2023/helpers"
 )
 
-func isSymbol(c byte) bool {
+func isDigit(line string, x int) bool {
+	c := line[x]
+	return '0' <= c && c <= '9'
+}
+
+func isSymbol(line string, x int) bool {
+	c := line[x]
 	return c != '.' && (c < '0' || c > '9')
 }
-func hasSymbol(lines []string, w, h, minx, maxx, y int) bool {
-	for yy := helpers.Max(y-1, 0); yy <= helpers.Min(y+1, h-1); yy += 1 {
+
+func hasAdjacentSymbol(lines []string, minx, maxx, y int) bool {
+	for yy := helpers.Max(y-1, 0); yy <= helpers.Min(y+1, len(lines)-1); yy += 1 {
 		line := lines[yy]
-		for xx := helpers.Max(minx-1, 0); xx <= helpers.Min(maxx+1, w-1); xx += 1 {
-			if isSymbol(line[xx]) {
+		for xx := helpers.Max(minx-1, 0); xx <= helpers.Min(maxx+1, len(line)-1); xx += 1 {
+			if isSymbol(line, xx) {
 				return true
 			}
 		}
@@ -22,33 +29,40 @@ func hasSymbol(lines []string, w, h, minx, maxx, y int) bool {
 	return false
 }
 
-func isDigit(line string, x int) bool {
-	if x < 0 || x >= len(line) {
-		return false
-	}
-	c := line[x]
-	return '0' <= c && c <= '9'
-}
-
-func getNum(lines []string, w, h, x, y, dx, dy int) int {
-	if x+dx < 0 || x+dx >= w || y+dy < 0 || y+dy >= h {
-		return -1
-	}
-	line := lines[y+dy]
-	if !isDigit(line, x+dx) {
-		return -1
+func getNumber(line string, x int) (int, int, int) {
+	if !isDigit(line, x) {
+		return -1, 0, 0
 	}
 
 	// find start and end of number
-	minx := x + dx
-	for isDigit(line, minx-1) {
+	minx := x
+	for minx > 0 && isDigit(line, minx-1) {
 		minx -= 1
 	}
-	maxx := x + dx
-	for isDigit(line, maxx+1) {
+	maxx := x
+	for maxx+1 < len(line) && isDigit(line, maxx+1) {
 		maxx += 1
 	}
-	return helpers.MustParseInt(line[minx : 1+maxx])
+	return helpers.MustParseInt(line[minx : 1+maxx]), minx, maxx
+}
+
+func getAdjacentNumbers(lines []string, x, y int) []int {
+	nums := make([]int, 0)
+	for yy := helpers.Max(0, y-1); yy <= helpers.Min(len(lines)-1, y+1); yy += 1 {
+		line := lines[yy]
+		n, _, _ := getNumber(line, x)
+		if n != -1 {
+			nums = append(nums, n)
+		} else {
+			for xx := helpers.Max(0, x-1); xx <= helpers.Min(len(line)-1, x+1); xx += 1 {
+				n, _, _ = getNumber(line, xx)
+				if n != -1 {
+					nums = append(nums, n)
+				}
+			}
+		}
+	}
+	return nums
 }
 
 func main() {
@@ -56,61 +70,27 @@ func main() {
 	helpers.ReadStdin(func(line string) {
 		lines = append(lines, line)
 	})
-	h := len(lines)
 	w := len(lines[0])
 
 	sum := 0
-	if helpers.Part1() {
-		for y, line := range lines {
-			minx := -1
-			num := 0
+	for y, line := range lines {
+		if helpers.Part1() {
 			for x := 0; x < w; x += 1 {
-				if isDigit(line, x) {
-					if minx == -1 {
-						minx = x
-						num = 0
+				n, minx, maxx := getNumber(line, x)
+				if n >= 0 {
+					if hasAdjacentSymbol(lines, minx, maxx, y) {
+						sum += n
 					}
-					num = 10*num + int(line[x]-'0')
-				} else if minx != -1 {
-					if hasSymbol(lines, w, h, minx, x-1, y) {
-						sum += num
-					}
-					minx = -1
+					x = maxx
 				}
 			}
-			if minx != -1 {
-				if hasSymbol(lines, w, h, minx, w-1, y) {
-					sum += num
-				}
-				minx = -1
-			}
-		}
-	} else {
-		for y, line := range lines {
+		} else {
 			for x := 0; x < w; x += 1 {
-				if line[x] != '*' {
-					// skip non-gears
-					continue
-				}
-				mult := 1
-				nums := 0
-				for dy := -1; dy <= +1; dy += 1 {
-					n := getNum(lines, w, h, x, y, 0, dy)
-					if n != -1 {
-						nums += 1
-						mult *= n
-					} else {
-						for dx := -1; dx <= +1; dx += 2 {
-							n = getNum(lines, w, h, x, y, dx, dy)
-							if n != -1 {
-								nums += 1
-								mult *= n
-							}
-						}
+				if line[x] == '*' {
+					nums := getAdjacentNumbers(lines, x, y)
+					if len(nums) == 2 {
+						sum += nums[0] * nums[1]
 					}
-				}
-				if nums == 2 {
-					sum += mult
 				}
 			}
 		}
