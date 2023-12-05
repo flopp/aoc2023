@@ -8,25 +8,25 @@ import (
 )
 
 type Range struct {
-	start  int
-	length int
+	start int
+	end   int
 }
 
-func (r *Range) end() int {
-	return r.start + r.length - 1
+func createRangeFromStartLen(start, length int) Range {
+	return Range{start, start + length - 1}
 }
 
 func (r *Range) contains(i int) bool {
-	return i >= r.start && i <= r.end()
+	return i >= r.start && i <= r.end
 }
 
-func (r *Range) overlap(other Range) bool {
-	return r.start <= other.end() && other.start <= r.end()
+func (r *Range) overlaps(other Range) bool {
+	return r.start <= other.end && other.start <= r.end
 }
 
 type RangeMap struct {
 	source Range
-	dest   int
+	offset int
 }
 type Mapping struct {
 	ranges []RangeMap
@@ -35,7 +35,7 @@ type Mapping struct {
 func (m *Mapping) mapValue(source int) int {
 	for _, r := range m.ranges {
 		if r.source.contains(source) {
-			return r.dest + (source - r.source.start)
+			return source + r.offset
 		}
 	}
 	return source
@@ -48,30 +48,22 @@ func (m *Mapping) mapRange(source Range) []Range {
 	for i := 0; i < len(split_source); i += 1 {
 		s := split_source[i]
 		for _, r := range m.ranges {
-			if s.overlap(r.source) {
-				// left overlap
-				left := r.source.start - s.start
-				if left > 0 {
-					s_start := Range{s.start, left}
-					split_source[i] = Range{s_start.end() + 1, left}
-					s = split_source[i]
-					split_source = append(split_source, s_start)
-					// do split_source[i] again in the next loop
-					i -= 1
-					break
-				}
+			// left overlap
+			if s.start < r.source.start && s.end >= r.source.start {
+				split_source = append(split_source, Range{s.start, r.source.start - 1})
+				split_source[i].start = r.source.start
+				// do split_source[i] again in the next loop
+				i -= 1
+				break
+			}
 
-				// right overlap
-				right := s.end() - r.source.end()
-				if right > 0 {
-					split_source[i] = Range{s.start, s.length - right}
-					s_end := Range{r.source.end() + 1, right}
-					s = split_source[i]
-					split_source = append(split_source, s_end)
-					// do split_source[i] again in the next loop
-					i -= 1
-					break
-				}
+			// right overlap
+			if s.start <= r.source.end && s.end > r.source.end {
+				split_source = append(split_source, Range{r.source.end + 1, s.end})
+				split_source[i].end = r.source.end
+				// do split_source[i] again in the next loop
+				i -= 1
+				break
 			}
 		}
 	}
@@ -81,8 +73,8 @@ func (m *Mapping) mapRange(source Range) []Range {
 	for _, s := range split_source {
 		mapped_s := s
 		for _, r := range m.ranges {
-			if s.overlap(r.source) {
-				mapped_s = Range{s.start + (r.dest - r.source.start), s.length}
+			if s.overlaps(r.source) {
+				mapped_s = Range{s.start + r.offset, s.end + r.offset}
 				break
 			}
 		}
@@ -94,8 +86,7 @@ func (m *Mapping) mapRange(source Range) []Range {
 func main() {
 	seeds := make([]int, 0)
 	mappings := make([]*Mapping, 0)
-	var mapping *Mapping
-	mapping = nil
+	var mapping *Mapping = nil
 
 	helpers.ReadStdin(func(line string) {
 		if line == "" {
@@ -114,7 +105,7 @@ func main() {
 			dest := helpers.MustParseInt(a[0])
 			source := helpers.MustParseInt(a[1])
 			length := helpers.MustParseInt(a[2])
-			mapping.ranges = append(mapping.ranges, RangeMap{Range{source, length}, dest})
+			mapping.ranges = append(mapping.ranges, RangeMap{createRangeFromStartLen(source, length), dest - source})
 		}
 	})
 
@@ -133,7 +124,7 @@ func main() {
 		// interpret seeds as ranges
 		for i := 0; i < len(seeds); i += 2 {
 			values := make([]Range, 0)
-			values = append(values, Range{seeds[i], seeds[i+1]})
+			values = append(values, createRangeFromStartLen(seeds[i], seeds[i+1]))
 
 			for _, mapping := range mappings {
 				nextValues := make([]Range, 0)
