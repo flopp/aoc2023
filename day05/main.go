@@ -68,7 +68,9 @@ func (m *Mapping) mapRange(source Range) []Range {
 		}
 	}
 
-	// step 2: map the split ranges
+	// step 2: map the split ranges (after splitting, each
+	// source range can only overlap with one range from
+	// m.ranges)
 	mapped := make([]Range, 0)
 	for _, s := range split_source {
 		mapped_s := s
