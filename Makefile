@@ -1,22 +1,38 @@
-define run1
+define run1_test
 	@go run day$@/main.go part1 test < day$@/test.txt
+endef
+define run1_test2
+	@go run day$@/main.go part1 test < day$@/test2.txt
+endef
+define run1_puzzle
 	@echo "=>"
-	@go run day$@/main.go part1 puzzle < day$@/puzzle.txt
+	@go run day$@/main.go part1 puzzlr < day$@/puzzle.txt
 	@echo
+endef
+
+define run2_test
+	@go run day$@/main.go part2 test < day$@/test.txt
+endef
+define run2_test2
+	@go run day$@/main.go part2 test < day$@/test2.txt
+endef
+define run2_test3
+	@go run day$@/main.go part2 test < day$@/test2.txt
+endef
+define run2_puzzle
+	@echo "=>"
+	@go run day$@/main.go part2 puzzlr < day$@/puzzle.txt
+	@echo
+endef
+	
+define run1
+	$(run1_test)
+	$(run1_puzzle)
 endef
 
 define run2
-	@go run day$@/main.go part2 test < day$@/test.txt
-	@echo "=>"
-	@go run day$@/main.go part2 puzzle < day$@/puzzle.txt
-	@echo
-endef
-
-define run2_test2
-	@go run day$@/main.go part2 test < day$@/test2.txt
-	@echo "=>"
-	@go run day$@/main.go part2 puzzle < day$@/puzzle.txt
-	@echo
+	$(run2_test)
+	$(run2_puzzle)
 endef
 
 all:
@@ -32,6 +48,7 @@ day%:
 	$(run1)
 	@echo "expected: 281"
 	$(run2_test2)
+	$(run2_puzzle)
 
 .PHONY: 02
 02:
@@ -75,3 +92,14 @@ day%:
 	$(run1)
 	@echo "expected: 5905"
 	$(run2)
+
+.PHONY: 08
+08:
+	@echo "expected: 2"
+	$(run1_test)
+	@echo "expected: 6"
+	$(run1_test2)
+	$(run1_puzzle)
+	@echo "expected: 6"
+	$(run2_test3)
+	$(run2_puzzle)
