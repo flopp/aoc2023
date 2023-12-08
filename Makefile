@@ -17,7 +17,7 @@ define run2_test2
 	@go run day$@/main.go part2 test < day$@/test2.txt
 endef
 define run2_test3
-	@go run day$@/main.go part2 test < day$@/test2.txt
+	@go run day$@/main.go part2 test < day$@/test3.txt
 endef
 define run2_puzzle
 	@echo "=>"
