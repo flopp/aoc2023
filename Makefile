@@ -103,3 +103,10 @@ day%:
 	@echo "expected: 6"
 	$(run2_test3)
 	$(run2_puzzle)
+
+.PHONY: 09
+09:
+	@echo "expected: 114"
+	$(run1)
+	@echo "expected: 2"
+	$(run2)
