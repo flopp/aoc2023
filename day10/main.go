@@ -13,6 +13,10 @@ const (
 	DirW = iota
 )
 
+func rotate(d, offset int) int {
+	return (4 + d + offset) % 4
+}
+
 type XY struct {
 	x, y int
 }
@@ -38,26 +42,6 @@ func (xy XY) next(d int) XY {
 		return xy.W()
 	}
 	panic(fmt.Errorf("bad d: %d", d))
-}
-
-func (xy XY) dir(next XY) int {
-	if next.x == xy.x {
-		if next.y == xy.y-1 {
-			return DirN
-		}
-		if next.y == xy.y+1 {
-			return DirS
-		}
-	}
-	if next.y == xy.y {
-		if next.x == xy.x-1 {
-			return DirW
-		}
-		if next.x == xy.x+1 {
-			return DirE
-		}
-	}
-	panic(fmt.Errorf("dir: %v => %v", xy, next))
 }
 
 func nextD(d int, pipe byte) int {
@@ -274,138 +258,77 @@ func (m *Maze) start() XY {
 	panic("cannot find start in maze")
 }
 
+type XYD struct {
+	xy  XY
+	dir int
+}
+
 func main() {
+	// read-in maze, add '.' border to simplify neighbr checking, etc.
 	maze := createMaze()
 	helpers.ReadStdin(func(line string) {
 		maze.addRow([]byte(line))
 	})
 	maze.addEmptyRow()
 
-	d := -1
+	// determine start position, replace it with matching pipe
 	start := maze.start()
 
-	if isOpen(maze.get(start.next(DirN)), DirS) {
-		d = DirN
-	} else if isOpen(maze.get(start.next(DirE)), DirW) {
-		d = DirE
-	} else if isOpen(maze.get(start.next(DirS)), DirN) {
-		d = DirS
-	} else if isOpen(maze.get(start.next(DirW)), DirE) {
-		d = DirW
+	// determine start direction
+	dir := -1
+	for d := DirN; d <= DirW; d += 1 {
+		if isOpen(maze.get(start), d) {
+			dir = d
+			break
+		}
 	}
 
-	steps := make([]XY, 0)
-	steps = append(steps, start)
+	// follow pipes until we hit start again
+	steps := make([]XYD, 0)
+	steps = append(steps, XYD{start, dir})
 	for {
-		xy := steps[len(steps)-1].next(d)
+		xy := steps[len(steps)-1].xy.next(dir)
 		if xy == start {
 			break
 		}
 		pipe := maze.get(xy)
-		d = nextD(d, pipe)
-		steps = append(steps, xy)
+		dir = nextD(dir, pipe)
+		steps = append(steps, XYD{xy, dir})
 	}
 
 	if helpers.Part1() {
 		fmt.Println(len(steps) / 2)
 	} else {
-		maze.clean(steps)
+		// remove non-path pipes
+		xys := make([]XY, 0, len(steps))
+		for _, xyd := range steps {
+			xys = append(xys, xyd.xy)
+		}
+		maze.clean(xys)
+
+		// fill border region
 		maze.floodFill(XY{0, 0}, 'O')
 
-		outer := false
-		left := false
-		var last XY
-		for i := 0; i <= 2*len(steps); i += 1 {
-			xy := steps[i%len(steps)]
-			if i > 0 {
-				switch last.dir(xy) {
-				case DirN:
-					if !outer {
-						if maze.get(xy.W()) == 'O' {
-							outer = true
-							left = true
-						} else if maze.get(xy.E()) == 'O' {
-							outer = true
-							left = false
-						}
-					}
-				case DirE:
-					if !outer {
-						if maze.get(xy.N()) == 'O' {
-							outer = true
-							left = true
-						} else if maze.get(xy.S()) == 'O' {
-							outer = true
-							left = false
-						}
-					}
-				case DirS:
-					if !outer {
-						if maze.get(xy.E()) == 'O' {
-							outer = true
-							left = true
-						} else if maze.get(xy.W()) == 'O' {
-							outer = true
-							left = false
-						}
-					}
-				case DirW:
-					if !outer {
-						if maze.get(xy.S()) == 'O' {
-							outer = true
-							left = true
-						} else if maze.get(xy.N()) == 'O' {
-							outer = true
-							left = false
-						}
-					}
-				}
+		// determine if 'O' is left or right of path
+		outerRot := 0
+		for _, xyd := range steps {
+			if maze.get(xyd.xy.next(rotate(xyd.dir, -1))) == 'O' {
+				outerRot = -1
+				break
+			} else if maze.get(xyd.xy.next(rotate(xyd.dir, +1))) == 'O' {
+				outerRot = +1
+				break
 			}
-			last = xy
 		}
-		if !outer {
+		if outerRot == 0 {
 			panic("cannot find outer side")
 		}
 
-		for i := 0; i <= 2*len(steps); i += 1 {
-			xy := steps[i%len(steps)]
-			if i > 0 {
-				switch last.dir(xy) {
-				case DirN:
-					if left {
-						maze.floodFill(last.W(), 'O')
-						maze.floodFill(xy.W(), 'O')
-					} else {
-						maze.floodFill(last.E(), 'O')
-						maze.floodFill(xy.E(), 'O')
-					}
-				case DirE:
-					if left {
-						maze.floodFill(last.N(), 'O')
-						maze.floodFill(xy.N(), 'O')
-					} else {
-						maze.floodFill(last.S(), 'O')
-						maze.floodFill(xy.S(), 'O')
-					}
-				case DirS:
-					if left {
-						maze.floodFill(last.E(), 'O')
-						maze.floodFill(xy.E(), 'O')
-					} else {
-						maze.floodFill(last.W(), 'O')
-						maze.floodFill(xy.W(), 'O')
-					}
-				case DirW:
-					if left {
-						maze.floodFill(last.S(), 'O')
-						maze.floodFill(xy.S(), 'O')
-					} else {
-						maze.floodFill(last.N(), 'O')
-						maze.floodFill(xy.N(), 'O')
-					}
-				}
-			}
-			last = xy
+		// follow path and fill outer side
+		for i, xyd := range steps {
+			d := rotate(xyd.dir, outerRot)
+			maze.floodFill(xyd.xy.next(d), 'O')
+			maze.floodFill(steps[(i+1)%len(steps)].xy.next(d), 'O')
 		}
 
 		fmt.Println(maze.count('.'))
