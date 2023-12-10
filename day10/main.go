@@ -21,14 +21,10 @@ type XY struct {
 	x, y int
 }
 
-func (xy XY) N() XY  { return XY{xy.x, xy.y - 1} }
-func (xy XY) NE() XY { return XY{xy.x + 1, xy.y - 1} }
-func (xy XY) NW() XY { return XY{xy.x - 1, xy.y - 1} }
-func (xy XY) E() XY  { return XY{xy.x + 1, xy.y} }
-func (xy XY) S() XY  { return XY{xy.x, xy.y + 1} }
-func (xy XY) SE() XY { return XY{xy.x + 1, xy.y + 1} }
-func (xy XY) SW() XY { return XY{xy.x - 1, xy.y + 1} }
-func (xy XY) W() XY  { return XY{xy.x - 1, xy.y} }
+func (xy XY) N() XY { return XY{xy.x, xy.y - 1} }
+func (xy XY) E() XY { return XY{xy.x + 1, xy.y} }
+func (xy XY) S() XY { return XY{xy.x, xy.y + 1} }
+func (xy XY) W() XY { return XY{xy.x - 1, xy.y} }
 
 func (xy XY) next(d int) XY {
 	switch d {
@@ -107,13 +103,13 @@ func isOpen(c byte, d int) bool {
 }
 
 type Maze struct {
-	grid [][]byte
+	grid []byte
 	w, h int
 	s    XY
 }
 
 func createMaze() *Maze {
-	return &Maze{make([][]byte, 0), 0, 0, XY{-1, -1}}
+	return &Maze{make([]byte, 0), 0, 0, XY{-1, -1}}
 }
 
 func (m *Maze) addRow(row []byte) {
@@ -121,47 +117,42 @@ func (m *Maze) addRow(row []byte) {
 		m.w = len(row) + 2
 		m.addEmptyRow()
 	}
-	r := make([]byte, m.w)
-	r[0] = '.'
-	r[m.w-1] = '.'
-	for i, b := range row {
-		r[i+1] = b
-	}
-	m.grid = append(m.grid, r)
+	m.grid = append(m.grid, '.')
+	m.grid = append(m.grid, row...)
+	m.grid = append(m.grid, '.')
 	m.h += 1
 }
 
 func (m *Maze) addEmptyRow() {
-	r := make([]byte, m.w)
 	for i := 0; i < m.w; i += 1 {
-		r[i] = '.'
+		m.grid = append(m.grid, '.')
 	}
-	m.grid = append(m.grid, r)
 	m.h += 1
 }
 
 func (m *Maze) clean(steps []XY) {
 	grid := m.grid
-	m.grid = make([][]byte, 0, len(grid))
-	m.h = 0
+	m.grid = make([]byte, len(grid))
 	for i := 0; i < len(grid); i += 1 {
-		m.addEmptyRow()
+		m.grid[i] = '.'
 	}
 	for _, xy := range steps {
-		m.grid[xy.y][xy.x] = grid[xy.y][xy.x]
+		m.set(xy, grid[xy.y*m.w+xy.x])
 	}
 }
 
 func (m Maze) count(c byte) int {
 	n := 0
-	for _, row := range m.grid {
-		for _, c := range row {
-			if c == '.' {
-				n += 1
-			}
+	for _, c := range m.grid {
+		if c == '.' {
+			n += 1
 		}
 	}
 	return n
+}
+
+func (m Maze) contains(xy XY) bool {
+	return xy.x >= 0 && xy.x < m.w && xy.y >= 0 && xy.y < m.h
 }
 
 func (m *Maze) floodFill(xy XY, fillc byte) {
@@ -171,44 +162,25 @@ func (m *Maze) floodFill(xy XY, fillc byte) {
 	for len(pending) > 0 {
 		xy = pending[len(pending)-1]
 		pending = pending[:len(pending)-1]
-		c := m.get(xy)
-		if c != '.' {
+		if m.get(xy) != '.' {
 			continue
 		}
 		m.set(xy, fillc)
-		if xy.x > 0 {
-			pending = append(pending, xy.W())
-			if xy.y > 0 {
-				pending = append(pending, xy.NW())
+		for d := DirN; d <= DirW; d += 1 {
+			xy2 := xy.next(d)
+			if m.contains(xy2) {
+				pending = append(pending, xy2)
 			}
-			if xy.y+1 < m.h {
-				pending = append(pending, xy.SW())
-			}
-		}
-		if xy.x+1 < m.w {
-			pending = append(pending, xy.E())
-			if xy.y > 0 {
-				pending = append(pending, xy.NE())
-			}
-			if xy.y+1 < m.h {
-				pending = append(pending, xy.SE())
-			}
-		}
-		if xy.y > 0 {
-			pending = append(pending, xy.N())
-		}
-		if xy.y+1 < m.h {
-			pending = append(pending, xy.S())
 		}
 	}
 }
 
 func (m Maze) get(xy XY) byte {
-	return m.grid[xy.y][xy.x]
+	return m.grid[xy.y*m.w+xy.x]
 }
 
 func (m *Maze) set(xy XY, c byte) {
-	m.grid[xy.y][xy.x] = c
+	m.grid[xy.y*m.w+xy.x] = c
 }
 
 func (m *Maze) start() XY {
