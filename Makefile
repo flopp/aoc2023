@@ -1,37 +1,24 @@
-define run1_test
-	@go run day$@/main.go part1 test < day$@/test.txt
-endef
-define run1_test2
-	@go run day$@/main.go part1 test < day$@/test2.txt
+define run
+	@go run day$@/main.go part$(1) test < day$@/$(2).txt
 endef
 define run1_puzzle
 	@echo "=>"
-	@go run day$@/main.go part1 puzzlr < day$@/puzzle.txt
+	$(call run,1,puzzle)
 	@echo
-endef
-
-define run2_test
-	@go run day$@/main.go part2 test < day$@/test.txt
-endef
-define run2_test2
-	@go run day$@/main.go part2 test < day$@/test2.txt
-endef
-define run2_test3
-	@go run day$@/main.go part2 test < day$@/test3.txt
 endef
 define run2_puzzle
 	@echo "=>"
-	@go run day$@/main.go part2 puzzlr < day$@/puzzle.txt
+	$(call run,2,puzzle)
 	@echo
 endef
 	
 define run1
-	$(run1_test)
+	$(call run,1,test)
 	$(run1_puzzle)
 endef
 
 define run2
-	$(run2_test)
+	$(call run,2,test)
 	$(run2_puzzle)
 endef
 
@@ -47,7 +34,7 @@ day%:
 	@echo "expected: 142"
 	$(run1)
 	@echo "expected: 281"
-	$(run2_test2)
+	$(call run,2,test2)
 	$(run2_puzzle)
 
 .PHONY: 02
@@ -96,12 +83,12 @@ day%:
 .PHONY: 08
 08:
 	@echo "expected: 2"
-	$(run1_test)
+	$(call run,1,test)
 	@echo "expected: 6"
-	$(run1_test2)
+	$(call run,1,test2)
 	$(run1_puzzle)
 	@echo "expected: 6"
-	$(run2_test3)
+	$(call run,2,test3)
 	$(run2_puzzle)
 
 .PHONY: 09
@@ -110,3 +97,19 @@ day%:
 	$(run1)
 	@echo "expected: 2"
 	$(run2)
+
+.PHONY: 10
+10:
+	@echo "expected: 4"
+	$(call run,1,test)
+	@echo "expected: 8"
+	$(call run,1,test2)
+	$(run1_puzzle)
+
+	@echo "expected: 4"
+	$(call run,2,test2a)
+	@echo "expected: 8"
+	$(call run,2,test2b)
+	@echo "expected: 10"
+	$(call run,2,test2c)
+	$(run2_puzzle)
