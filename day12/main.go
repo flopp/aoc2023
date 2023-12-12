@@ -7,7 +7,7 @@ import (
 	"github.com/flopp/aoc2023/helpers"
 )
 
-func arrangements(springs []byte, springIndex int, defects []int, defectIndex, defectRem int) int {
+func arrangements(springs []byte, springIndex int, defects []int, defectIndex, defectRem int, cache map[string]int) int {
 	if springIndex == len(springs) {
 		if defectIndex == len(defects) {
 			return 1
@@ -17,6 +17,12 @@ func arrangements(springs []byte, springIndex int, defects []int, defectIndex, d
 		}
 		return 0
 	}
+
+	key := fmt.Sprintf("%d.%d.%d", springIndex, defectIndex, defectRem)
+	if value, ok := cache[key]; ok {
+		return value
+	}
+
 	switch springs[springIndex] {
 	case '#':
 		if defectRem < 0 {
@@ -29,7 +35,7 @@ func arrangements(springs []byte, springIndex int, defects []int, defectIndex, d
 		if defectRem < 0 {
 			return 0
 		}
-		return arrangements(springs, springIndex+1, defects, defectIndex, defectRem)
+		return arrangements(springs, springIndex+1, defects, defectIndex, defectRem, cache)
 	case '.':
 		if defectRem > 0 {
 			return 0
@@ -38,17 +44,18 @@ func arrangements(springs []byte, springIndex int, defects []int, defectIndex, d
 			defectRem = -1
 			defectIndex += 1
 		}
-		return arrangements(springs, springIndex+1, defects, defectIndex, defectRem)
+		return arrangements(springs, springIndex+1, defects, defectIndex, defectRem, cache)
 	case '?':
 		sum := 0
 		// .
 		springs[springIndex] = '.'
-		sum += arrangements(springs, springIndex, defects, defectIndex, defectRem)
+		sum += arrangements(springs, springIndex, defects, defectIndex, defectRem, cache)
 		// #
 		springs[springIndex] = '#'
-		sum += arrangements(springs, springIndex, defects, defectIndex, defectRem)
+		sum += arrangements(springs, springIndex, defects, defectIndex, defectRem, cache)
 		springs[springIndex] = '?'
 
+		cache[key] = sum
 		return sum
 	}
 	return 0
@@ -97,7 +104,8 @@ func main() {
 		for _, d := range line.defects {
 			defectsSum += d
 		}
-		s := arrangements(line.springs, 0, line.defects, 0, -1)
+		cache := make(map[string]int)
+		s := arrangements(line.springs, 0, line.defects, 0, -1, cache)
 		sum += s
 	}
 	fmt.Println(sum)
