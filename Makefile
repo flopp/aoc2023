@@ -139,3 +139,11 @@ day%:
 	$(run1)
 	@echo "expected: 400 / 28627"
 	$(run2)
+
+.PHONY: 14
+14:
+	@echo "expected: 136"
+	$(run1)
+	@echo "expected: 64"
+	$(run2)
+
