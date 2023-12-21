@@ -185,3 +185,20 @@ day%:
 	$(run1)
 	@echo "expected: 167409079868000"
 	$(run2)
+
+.PHONY: 20
+20:
+	@echo "expected: 32000000"
+	$(call run_test,1,test)
+	@echo "expected: 11687500"
+	$(call run_test,1,test2)
+	$(run1_puzzle)
+	@echo "expected: ?"
+	$(run2)
+
+.PHONY: 21
+21:
+	@echo "expected: ?"
+	$(run1)
+	@echo "expected: ?"
+	$(run2)
